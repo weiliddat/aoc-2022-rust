@@ -29,7 +29,7 @@ fn parse_input(raw: &String) -> Vec<Vec<usize>> {
 fn part01(elves_inventory: &Vec<Vec<usize>>) -> usize {
 	elves_inventory
 		.iter()
-		.map(|elf| elf.iter().fold(0, |acc, x| acc + x))
+		.map(|elf| elf.iter().sum())
 		.max()
 		.unwrap()
 }
@@ -37,7 +37,7 @@ fn part01(elves_inventory: &Vec<Vec<usize>>) -> usize {
 fn part02(elves_inventory: &Vec<Vec<usize>>) -> usize {
 	let mut calories = elves_inventory
 		.iter()
-		.map(|elf| elf.iter().fold(0, |acc, x| acc + x))
+		.map(|elf| elf.iter().sum())
 		.collect::<Vec<_>>();
 
 	calories.sort();
