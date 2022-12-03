@@ -1,7 +1,10 @@
+#![feature(iter_array_chunks)]
+
 use std::env;
 
 mod day01;
 mod day02;
+mod day03;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -19,6 +22,7 @@ fn main() {
     match day {
         "day01" => day01::run(),
         "day02" => day02::run(),
+        "day03" => day03::run(),
         _ => println!("{} was not done yet!", day),
     }
 }
