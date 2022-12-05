@@ -89,12 +89,39 @@ fn parse_input(raw: &str) -> (Stacks, Steps) {
 	(stacks, steps)
 }
 
-fn part01(input: &(Stacks, Steps)) -> usize {
-	0
+fn part01(input: &(Stacks, Steps)) -> String {
+	let mut stacks = input.0.clone();
+	let steps = &input.1;
+
+	steps.iter().for_each(|step| {
+		for _ in 0..step.amount {
+			let [source, target] = stacks.get_many_mut([&step.source, &step.target]).unwrap();
+			let char = source.pop().unwrap();
+			target.push(char);
+		}
+	});
+
+	let top_stacks = (1..(stacks.len() + 1)).map(|i| stacks.get(&i).unwrap().last().unwrap());
+
+	top_stacks.collect::<String>()
 }
 
-fn part02(input: &(Stacks, Steps)) -> usize {
-	0
+fn part02(input: &(Stacks, Steps)) -> String {
+	let mut stacks = input.0.clone();
+	let steps = &input.1;
+
+	steps.iter().for_each(|step| {
+		let [source, target] = stacks.get_many_mut([&step.source, &step.target]).unwrap();
+		let mut chars = (0..step.amount)
+			.map(|_| source.pop().unwrap())
+			.collect::<Vec<_>>();
+		chars.reverse();
+		target.append(&mut chars);
+	});
+
+	let top_stacks = (1..(stacks.len() + 1)).map(|i| stacks.get(&i).unwrap().last().unwrap());
+
+	top_stacks.collect::<String>()
 }
 
 #[cfg(test)]
@@ -168,16 +195,26 @@ mod tests {
 		let input = parse_input(raw);
 		let result = part01(&input);
 
-		assert_eq!(result, 1);
+		assert_eq!(result, "CMZ");
 	}
 
 	#[test]
 	fn test_part02() {
-		let raw = concat!("");
+		let raw = concat!(
+			"    [D]    \n",
+			"[N] [C]    \n",
+			"[Z] [M] [P]\n",
+			" 1   2   3 \n",
+			"\n",
+			"move 1 from 2 to 1\n",
+			"move 3 from 1 to 3\n",
+			"move 2 from 2 to 1\n",
+			"move 1 from 1 to 2\n",
+		);
 
 		let input = parse_input(raw);
 		let result = part02(&input);
 
-		assert_eq!(result, 1);
+		assert_eq!(result, "MCD");
 	}
 }
