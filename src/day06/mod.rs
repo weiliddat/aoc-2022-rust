@@ -15,9 +15,17 @@ pub fn run() {
 }
 
 fn part01(input: &str) -> usize {
+	find_consec_uniq(input, 4)
+}
+
+fn part02(input: &str) -> usize {
+	find_consec_uniq(input, 14)
+}
+
+fn find_consec_uniq(input: &str, uniq_len: usize) -> usize {
 	let chars = input.chars().collect::<Vec<_>>();
-	let four_consec_uniq = chars
-		.windows(4)
+	let consec_uniq = chars
+		.windows(uniq_len)
 		.enumerate()
 		.find(|(_i, cs)| {
 			let mut csc = cs.to_vec();
@@ -26,12 +34,7 @@ fn part01(input: &str) -> usize {
 			csc.len() == cs.len()
 		})
 		.unwrap();
-
-	four_consec_uniq.0 + 4
-}
-
-fn part02(input: &str) -> usize {
-	0
+	consec_uniq.0 + uniq_len
 }
 
 #[cfg(test)]
@@ -63,8 +66,24 @@ mod tests {
 
 	#[test]
 	fn test_part02() {
+		let input = "mjqjpqmgbljsphdztnvjfqwrcgsmlb";
+		let result = part02(input);
+		assert_eq!(result, 19);
+
 		let input = "bvwbjplbgvbhsrlpgdmjqwftvncz";
 		let result = part02(input);
-		assert_eq!(result, 1);
+		assert_eq!(result, 23);
+
+		let input = "nppdvjthqldpwncqszvftbrmjlhg";
+		let result = part02(input);
+		assert_eq!(result, 23);
+
+		let input = "nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg";
+		let result = part02(input);
+		assert_eq!(result, 29);
+
+		let input = "zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw";
+		let result = part02(input);
+		assert_eq!(result, 26);
 	}
 }
