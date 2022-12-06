@@ -1,5 +1,6 @@
 #![feature(iter_array_chunks)]
 #![feature(map_many_mut)]
+#![feature(test)]
 
 use std::env;
 

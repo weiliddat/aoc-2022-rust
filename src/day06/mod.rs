@@ -1,5 +1,6 @@
 use std::fs;
 use std::path::Path;
+extern crate test;
 
 pub fn run() {
 	let module_name = module_path!().split("::").last().unwrap();
@@ -40,6 +41,7 @@ fn find_consec_uniq(input: &str, uniq_len: usize) -> usize {
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use test::Bencher;
 
 	#[test]
 	fn test_part01() {
@@ -85,5 +87,10 @@ mod tests {
 		let input = "zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw";
 		let result = part02(input);
 		assert_eq!(result, 26);
+	}
+
+	#[bench]
+	fn bench_find_consec_uniq(b: &mut Bencher) {
+		b.iter(|| find_consec_uniq("mjqjpqmgbljsphdztnvjfqwrcgsmlb", 14))
 	}
 }
