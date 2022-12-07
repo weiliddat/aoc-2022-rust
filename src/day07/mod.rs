@@ -16,115 +16,22 @@ pub fn run() {
 }
 
 fn part01(input: &str) -> usize {
-	let mut lines = input.lines();
+	let dir_usage = du(input);
 
-	let mut file_list = HashMap::new();
-	let mut current_path = String::from("");
-	let mut dir_list = vec![String::from("/")];
-	let mut du = HashMap::new();
-
-	while let Some(line) = lines.next() {
-		if line.starts_with("$ cd /") {
-			current_path = String::from("/");
-		} else if line.starts_with("$ cd ..") {
-			let last_dirname = current_path
-				.trim_end_matches('/')
-				.split('/')
-				.last()
-				.unwrap();
-			current_path = String::from(
-				current_path
-					.trim_end_matches("/")
-					.trim_end_matches(last_dirname),
-			);
-		} else if line.starts_with("$ cd") {
-			current_path = current_path.to_owned() + &line[5..] + "/";
-		} else if line.starts_with("$ ls") {
-		} else {
-			if line.starts_with("dir") {
-				let (_, dir_name) = line.split_once(' ').unwrap();
-				let dir_path = current_path.clone() + dir_name;
-				dir_list.push(dir_path);
-			} else {
-				let (file_size, file_name) = line.split_once(' ').unwrap();
-				let file_size = file_size.parse::<usize>().unwrap();
-				let file_path = current_path.clone() + file_name;
-				file_list.insert(file_path, file_size);
-			}
-		}
-	}
-
-	for (file_path, file_size) in file_list {
-		dir_list
-			.iter()
-			.filter(|d| file_path.starts_with(*d))
-			.for_each(|d| {
-				du.entry(d.as_str())
-					.and_modify(|s| *s += file_size)
-					.or_insert(file_size);
-			});
-	}
-
-	du.iter()
+	dir_usage
+		.iter()
 		.filter_map(|(_, size)| if *size <= 100000 { Some(size) } else { None })
 		.sum()
 }
 
 fn part02(input: &str) -> usize {
-	let mut lines = input.lines();
+	let dir_usage = du(input);
 
-	let mut file_list = HashMap::new();
-	let mut current_path = String::from("");
-	let mut dir_list = vec![String::from("/")];
-	let mut du = HashMap::new();
-
-	while let Some(line) = lines.next() {
-		if line.starts_with("$ cd /") {
-			current_path = String::from("/");
-		} else if line.starts_with("$ cd ..") {
-			let last_dirname = current_path
-				.trim_end_matches('/')
-				.split('/')
-				.last()
-				.unwrap();
-			current_path = String::from(
-				current_path
-					.trim_end_matches("/")
-					.trim_end_matches(last_dirname),
-			);
-		} else if line.starts_with("$ cd") {
-			current_path = current_path.to_owned() + &line[5..] + "/";
-		} else if line.starts_with("$ ls") {
-		} else {
-			if line.starts_with("dir") {
-				let (_, dir_name) = line.split_once(' ').unwrap();
-				let dir_path = current_path.clone() + dir_name;
-				dir_list.push(dir_path);
-			} else {
-				let (file_size, file_name) = line.split_once(' ').unwrap();
-				let file_size = file_size.parse::<usize>().unwrap();
-				let file_path = current_path.clone() + file_name;
-				file_list.insert(file_path, file_size);
-			}
-		}
-	}
-
-	for (file_path, file_size) in file_list {
-		dir_list
-			.iter()
-			.filter(|d| file_path.starts_with(*d))
-			.for_each(|d| {
-				du.entry(d.as_str())
-					.and_modify(|s| *s += file_size)
-					.or_insert(file_size);
-			});
-	}
-
-	let total_size = du.get("/").unwrap();
+	let total_size = dir_usage.get("/").unwrap();
 	let space_left = 70000000 - total_size;
 	let space_needed = 30000000 - space_left;
 
-	let mut dirs_to_delete = du
+	let mut dirs_to_delete = dir_usage
 		.iter()
 		.filter_map(|(_, size)| {
 			if *size >= space_needed {
@@ -137,6 +44,56 @@ fn part02(input: &str) -> usize {
 
 	dirs_to_delete.sort();
 	*dirs_to_delete[0]
+}
+
+fn du(input: &str) -> HashMap<String, usize> {
+	let mut lines = input.lines();
+	let mut file_list = HashMap::new();
+	let mut current_path = String::from("");
+	let mut dir_list = vec![String::from("/")];
+	let mut dir_usage = HashMap::new();
+	while let Some(line) = lines.next() {
+		if line.starts_with("$ cd /") {
+			current_path = String::from("/");
+		} else if line.starts_with("$ cd ..") {
+			let last_dirname = current_path
+				.trim_end_matches('/')
+				.split('/')
+				.last()
+				.unwrap();
+			current_path = String::from(
+				current_path
+					.trim_end_matches("/")
+					.trim_end_matches(last_dirname),
+			);
+		} else if line.starts_with("$ cd") {
+			current_path = current_path.to_owned() + &line[5..] + "/";
+		} else if line.starts_with("$ ls") {
+		} else {
+			if line.starts_with("dir") {
+				let (_, dir_name) = line.split_once(' ').unwrap();
+				let dir_path = current_path.clone() + dir_name;
+				dir_list.push(dir_path);
+			} else {
+				let (file_size, file_name) = line.split_once(' ').unwrap();
+				let file_size = file_size.parse::<usize>().unwrap();
+				let file_path = current_path.clone() + file_name;
+				file_list.insert(file_path, file_size);
+			}
+		}
+	}
+	for (file_path, file_size) in file_list {
+		dir_list
+			.iter()
+			.filter(|d| file_path.starts_with(*d))
+			.for_each(|d| {
+				dir_usage
+					.entry(d.clone())
+					.and_modify(|s| *s += file_size)
+					.or_insert(file_size);
+			});
+	}
+	dir_usage
 }
 
 #[cfg(test)]
