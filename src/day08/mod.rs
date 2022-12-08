@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::Path;
 
@@ -94,8 +94,77 @@ fn visible_from_outside<I>(
 	}
 }
 
+type Map = HashMap<(usize, usize), u32>;
+
 fn part02(input: &str) -> usize {
-	0
+	let mut map: Map = HashMap::new();
+
+	let size = input.lines().next().unwrap().len();
+
+	input.lines().enumerate().for_each(|(y, cs)| {
+		cs.chars().enumerate().for_each(|(x, c)| {
+			let h = c.to_digit(10).unwrap();
+			map.insert((x, y), h);
+		});
+	});
+
+	let mut scenic_scores = map
+		.iter()
+		.map(|(coord, _height)| {
+			// to top
+			let top_list = (0..=coord.1)
+				.rev()
+				.map(|y| map.get_key_value(&(coord.0, y)).unwrap())
+				.collect::<Vec<_>>();
+
+			let visible_top = visible_in_list(&top_list);
+
+			// to right
+			let right_list = (coord.0..size)
+				.map(|x| map.get_key_value(&(x, coord.1)).unwrap())
+				.collect::<Vec<_>>();
+
+			let visible_right = visible_in_list(&right_list);
+
+			// to left
+			let left_list = (0..=coord.0)
+				.rev()
+				.map(|x| map.get_key_value(&(x, coord.1)).unwrap())
+				.collect::<Vec<_>>();
+
+			let visible_left = visible_in_list(&left_list);
+
+			// to bottom
+			let bottom_list = (coord.1..size)
+				.map(|y| map.get_key_value(&(coord.0, y)).unwrap())
+				.collect::<Vec<_>>();
+
+			let visible_bottom = visible_in_list(&bottom_list);
+
+			visible_top.len() * visible_left.len() * visible_right.len() * visible_bottom.len()
+		})
+		.collect::<Vec<_>>();
+
+	scenic_scores.sort();
+	let best_scenic_score = scenic_scores.last().unwrap();
+	*best_scenic_score
+}
+
+fn visible_in_list(list: &Vec<(&(usize, usize), &u32)>) -> Vec<(usize, usize)> {
+	let mut visible = vec![];
+	let mut iterator = list.iter();
+	let (_, house_height) = iterator.next().unwrap();
+
+	for (coord, tree_height) in iterator {
+		if tree_height >= house_height {
+			visible.push(**coord);
+			break;
+		} else {
+			visible.push(**coord);
+		}
+	}
+
+	visible
 }
 
 #[cfg(test)]
@@ -113,6 +182,6 @@ mod tests {
 	fn test_part02() {
 		let input = concat!("30373\n", "25512\n", "65332\n", "33549\n", "35390\n",);
 		let result = part02(input);
-		assert_eq!(result, 1);
+		assert_eq!(result, 8);
 	}
 }
