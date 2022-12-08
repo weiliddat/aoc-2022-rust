@@ -14,6 +14,7 @@ pub fn run() {
 
 	let part02_result = part02(&input);
 	println!("part02 {:?}", part02_result);
+	assert_eq!(part02_result, 671160);
 }
 
 fn part01(input: &str) -> usize {
