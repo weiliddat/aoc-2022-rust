@@ -14,6 +14,7 @@ pub fn run() {
 
 	let part02_result = part02(&input);
 	println!("part02 {:?}", part02_result);
+	assert_eq!(part02_result, 2604);
 }
 
 #[derive(Debug, PartialEq, Hash, Eq, Default, Clone)]
@@ -107,16 +108,19 @@ fn part02(input: &str) -> usize {
 	let mut tail_visited: HashSet<Coord> = HashSet::new();
 	tail_visited.insert(start.clone());
 
-	let instructions = input.lines().map(|l| {
+	let instructions = input.lines().flat_map(|l| {
 		let (i, s) = l.split_once(' ').unwrap();
 		let size = s.parse().unwrap();
-		match i {
-			"U" => Move::U(size),
-			"D" => Move::D(size),
-			"L" => Move::L(size),
-			"R" => Move::R(size),
-			_ => panic!("Unexpected char"),
-		}
+
+		(0..size).map(move |_| {
+			match i {
+				"U" => Move::U(1),
+				"D" => Move::D(1),
+				"L" => Move::L(1),
+				"R" => Move::R(1),
+				_ => panic!("Unexpected char"),
+			}
+		})
 	});
 
 	instructions.for_each(|i| {
@@ -128,8 +132,6 @@ fn part02(input: &str) -> usize {
 			Move::L(s) => head.x -= s,
 			Move::R(s) => head.x += s,
 		}
-
-		println!("head {:?}", head);
 
 		for hi in 0..(rope_size - 1) {
 			let ti = hi + 1;
@@ -172,10 +174,7 @@ fn part02(input: &str) -> usize {
 			}
 		}
 
-		println!("rope {:#?}", rope);
 	});
-
-	println!("visited {:#?}", tail_visited);
 
 	tail_visited.len()
 }
