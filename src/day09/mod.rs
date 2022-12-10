@@ -32,67 +32,11 @@ enum Move {
 }
 
 fn part01(input: &str) -> usize {
-	let start = Coord::default();
-	let mut head = start.clone();
-	let mut tail = start.clone();
-	let mut tail_visited: HashSet<Coord> = HashSet::new();
-	tail_visited.insert(tail.clone());
+	simulate_rope(input, 2)
+}
 
-	let instructions = input.lines().map(|l| {
-		let (i, s) = l.split_once(' ').unwrap();
-		let size = s.parse().unwrap();
-		match i {
-			"U" => Move::U(size),
-			"D" => Move::D(size),
-			"L" => Move::L(size),
-			"R" => Move::R(size),
-			_ => panic!("Unexpected char"),
-		}
-	});
-
-	instructions.for_each(|i| {
-		match i {
-			Move::U(s) => head.y += s,
-			Move::D(s) => head.y -= s,
-			Move::L(s) => head.x -= s,
-			Move::R(s) => head.x += s,
-		}
-
-		while is_far(&head, &tail) {
-			if tail.x != head.x && tail.y != head.y {
-				// diagonal
-				if tail.x < head.x {
-					tail.x += 1;
-				} else {
-					tail.x -= 1;
-				}
-
-				if tail.y < head.y {
-					tail.y += 1;
-				} else {
-					tail.y -= 1;
-				}
-			} else if tail.x != head.x {
-				// x-axis
-				if tail.x < head.x {
-					tail.x += 1;
-				} else {
-					tail.x -= 1;
-				}
-			} else if tail.y != head.y {
-				// y-axis
-				if tail.y < head.y {
-					tail.y += 1;
-				} else {
-					tail.y -= 1;
-				}
-			}
-
-			tail_visited.insert(tail.clone());
-		}
-	});
-
-	tail_visited.len()
+fn part02(input: &str) -> usize {
+	simulate_rope(input, 10)
 }
 
 fn is_far(head: &Coord, tail: &Coord) -> bool {
@@ -101,28 +45,23 @@ fn is_far(head: &Coord, tail: &Coord) -> bool {
 	x_diff.abs() > 1 || y_diff.abs() > 1
 }
 
-fn part02(input: &str) -> usize {
+fn simulate_rope(input: &str, rope_size: usize) -> usize {
 	let start = Coord::default();
-	let rope_size = 10_usize;
 	let mut rope = (0..rope_size).map(|_| start.clone()).collect::<Vec<_>>();
 	let mut tail_visited: HashSet<Coord> = HashSet::new();
 	tail_visited.insert(start.clone());
-
 	let instructions = input.lines().flat_map(|l| {
 		let (i, s) = l.split_once(' ').unwrap();
 		let size = s.parse().unwrap();
 
-		(0..size).map(move |_| {
-			match i {
-				"U" => Move::U(1),
-				"D" => Move::D(1),
-				"L" => Move::L(1),
-				"R" => Move::R(1),
-				_ => panic!("Unexpected char"),
-			}
+		(0..size).map(move |_| match i {
+			"U" => Move::U(1),
+			"D" => Move::D(1),
+			"L" => Move::L(1),
+			"R" => Move::R(1),
+			_ => panic!("Unexpected char"),
 		})
 	});
-
 	instructions.for_each(|i| {
 		let head = rope.get_mut(0).unwrap();
 
@@ -173,9 +112,7 @@ fn part02(input: &str) -> usize {
 				}
 			}
 		}
-
 	});
-
 	tail_visited.len()
 }
 
