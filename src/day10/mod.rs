@@ -1,5 +1,8 @@
 use std::fs;
+use std::io::{stdout, Write};
 use std::path::Path;
+use std::thread::sleep;
+use std::time::Duration;
 
 pub fn run() {
 	let module_name = module_path!().split("::").last().unwrap();
@@ -11,7 +14,29 @@ pub fn run() {
 	println!("part01 {:?}", part01_result);
 
 	let part02_result = part02(&input);
-	println!("part02 {:?}", part02_result);
+	println!("part02{:?}", part02_result);
+
+	let short_pause = || sleep(Duration::from_millis(50));
+	let long_pause = || sleep(Duration::from_millis(600));
+	let flush = || stdout().flush().unwrap();
+	for (i, c) in part02_result.chars().enumerate() {
+		if i % 40 == 0 {
+			long_pause();
+			println!();
+			flush();
+		}
+		short_pause();
+		print!("{}", c);
+		flush();
+	}
+	long_pause();
+	println!();
+	long_pause();
+	println!();
+	long_pause();
+	println!("Done");
+	long_pause();
+	println!();
 }
 
 enum Instruction {
@@ -65,8 +90,52 @@ fn part01(input: &str) -> isize {
 	signal_sum
 }
 
-fn part02(input: &str) -> usize {
-	0
+fn part02(input: &str) -> String {
+	let mut instructions = vec![];
+
+	input.lines().for_each(|l| match l {
+		l if l.starts_with("noop") => {
+			instructions.push(Instruction::Noop);
+		}
+		l if l.starts_with("addx") => {
+			let (_i, s) = l.split_once(" ").unwrap();
+			let size = s.parse::<isize>().unwrap();
+			instructions.push(Instruction::Noop);
+			instructions.push(Instruction::Addx(size));
+		}
+		_ => panic!("Unknown instruction {}", l),
+	});
+
+	let mut x = 1_isize;
+	let mut display = vec![];
+
+	instructions.iter().enumerate().for_each(|(c, i)| {
+		let draw_pos = isize::try_from(c % 40).unwrap();
+		let sprite_pos = get_sprite_pos(&x);
+		match i {
+			Instruction::Noop => {
+				if sprite_pos.contains(&draw_pos) {
+					display.push('#');
+				} else {
+					display.push('.');
+				}
+			}
+			Instruction::Addx(v) => {
+				if sprite_pos.contains(&draw_pos) {
+					display.push('#');
+				} else {
+					display.push('.');
+				}
+				x += v;
+			}
+		}
+	});
+
+	display.iter().collect::<String>()
+}
+
+fn get_sprite_pos(x: &isize) -> [isize; 3] {
+	[x - 1, x + 0, x + 1]
 }
 
 #[cfg(test)]
@@ -230,7 +299,15 @@ mod tests {
 
 	#[test]
 	fn test_part02() {
+		let expected = concat!(
+			"##..##..##..##..##..##..##..##..##..##..",
+			"###...###...###...###...###...###...###.",
+			"####....####....####....####....####....",
+			"#####.....#####.....#####.....#####.....",
+			"######......######......######......####",
+			"#######.......#######.......#######.....",
+		);
 		let result = part02(INPUT);
-		assert_eq!(result, 1);
+		assert_eq!(&result, expected);
 	}
 }
