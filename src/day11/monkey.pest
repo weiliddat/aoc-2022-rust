@@ -1,0 +1,26 @@
+monkey_id = { ASCII_DIGIT+ }
+
+item = { ASCII_DIGIT+ }
+item_list = { item ~ ("," ~ item)* }
+
+op_old = { "old" }
+op_number = { ASCII_DIGIT+ }
+op = { "+" | "*" }
+
+div_number = { ASCII_DIGIT+ }
+
+true_throw_to_id = { ASCII_DIGIT+ }
+false_throw_to_id = { ASCII_DIGIT+ }
+
+monkey = {
+    "Monkey" ~ monkey_id ~ ":" ~ NEWLINE ~
+    "Starting items:" ~ item_list ~ NEWLINE ~
+    "Operation: new =" ~ (op_old|op_number) ~ op ~ (op_old|op_number) ~ NEWLINE ~
+    "Test: divisible by" ~ div_number ~ NEWLINE ~
+    "If true: throw to monkey" ~ true_throw_to_id ~ NEWLINE ~
+    "If false: throw to monkey" ~ false_throw_to_id ~ NEWLINE*
+}
+
+file = { SOI ~ monkey+ ~ EOI }
+
+WHITESPACE = _{ " " }

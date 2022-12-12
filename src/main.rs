@@ -2,6 +2,10 @@
 #![feature(map_many_mut)]
 #![feature(get_many_mut)]
 
+extern crate pest;
+#[macro_use]
+extern crate pest_derive;
+
 use std::env;
 
 mod day01;
@@ -14,6 +18,7 @@ mod day07;
 mod day08;
 mod day09;
 mod day10;
+mod day11;
 
 fn main() {
 	let args: Vec<String> = env::args().collect();
@@ -39,6 +44,7 @@ fn main() {
 		"day08" => day08::run(),
 		"day09" => day09::run(),
 		"day10" => day10::run(),
+		"day11" => day11::run(),
 		_ => println!("{} was not done yet!", day),
 	}
 }

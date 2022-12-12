@@ -45,44 +45,40 @@ enum Instruction {
 }
 
 fn part01(input: &str) -> isize {
-	let instructions = input
-		.lines()
-		.map(|l| match l {
-			l if l.starts_with("noop") => Instruction::Noop,
-			l if l.starts_with("addx") => {
-				let (_i, s) = l.split_once(" ").unwrap();
-				let size = s.parse::<isize>().unwrap();
-				Instruction::Addx(size)
-			}
-			_ => panic!("Unknown instruction {}", l),
-		})
-		.collect::<Vec<_>>();
+	let mut instructions = vec![];
 
-	let mut curr_cycle = 0;
-	let mut x = 1;
+	input.lines().for_each(|l| match l {
+		l if l.starts_with("noop") => {
+			instructions.push(Instruction::Noop);
+		}
+		l if l.starts_with("addx") => {
+			let (_i, s) = l.split_once(" ").unwrap();
+			let size = s.parse::<isize>().unwrap();
+			instructions.push(Instruction::Noop);
+			instructions.push(Instruction::Addx(size));
+		}
+		_ => panic!("Unknown instruction {}", l),
+	});
 
+	let mut x = 1_isize;
 	let to_check = (20..=220).step_by(40).collect::<Vec<_>>();
 	let mut checked = vec![];
 
-	instructions.iter().for_each(|i| {
-		let mut cycle = || {
-			curr_cycle += 1;
-
-			if to_check.contains(&curr_cycle) {
-				checked.push(curr_cycle * x);
-			}
-		};
-
+	instructions.iter().enumerate().for_each(|(c, i)| {
+		let cycle = isize::try_from(c).unwrap() + 1;
 		match i {
 			Instruction::Noop => {
-				cycle();
+				if to_check.contains(&cycle) {
+					checked.push(cycle * x);
+				}
 			}
-			Instruction::Addx(value) => {
-				cycle();
-				cycle();
-				x += value;
+			Instruction::Addx(v) => {
+				if to_check.contains(&cycle) {
+					checked.push(cycle * x);
+				}
+				x += v;
 			}
-		};
+		}
 	});
 
 	let signal_sum = checked.into_iter().sum();
