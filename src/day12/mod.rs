@@ -23,14 +23,31 @@ fn part01(input: &str) -> usize {
 
 	parse_map(input, &mut start, &mut end, &mut map, &mut map_neighbors);
 
-	search(map_neighbors, start, end)
+	search(&map_neighbors, start, end).unwrap()
+}
+
+fn part02(input: &str) -> usize {
+	let mut map = HashMap::new();
+	let mut start = (0, 0);
+	let mut end = (0, 0);
+	let mut map_neighbors = HashMap::new();
+
+	parse_map(input, &mut start, &mut end, &mut map, &mut map_neighbors);
+
+	let starts = map.iter().filter(|(_, h)| **h == 'a').collect::<Vec<_>>();
+
+	starts
+		.iter()
+		.filter_map(|(start, _)| search(&map_neighbors, **start, end))
+		.min()
+		.unwrap()
 }
 
 fn search(
-	map_neighbors: HashMap<(usize, usize), Vec<(usize, usize)>>,
+	map_neighbors: &HashMap<(usize, usize), Vec<(usize, usize)>>,
 	start: (usize, usize),
 	end: (usize, usize),
-) -> usize {
+) -> Option<usize> {
 	let mut found = None;
 	let mut paths = VecDeque::from([start]);
 	let mut visited = HashMap::new();
@@ -55,7 +72,7 @@ fn search(
 		}
 	}
 
-	*found.unwrap()
+	found.copied()
 }
 
 fn parse_map(
@@ -121,10 +138,6 @@ fn pretty_print_map(map: &HashMap<(usize, usize), char>) {
 		}
 		println!();
 	}
-}
-
-fn part02(_input: &str) -> usize {
-	0
 }
 
 #[cfg(test)]
