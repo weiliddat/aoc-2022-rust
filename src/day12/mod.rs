@@ -19,15 +19,60 @@ fn part01(input: &str) -> usize {
 	let mut map = HashMap::new();
 	let mut start = (0, 0);
 	let mut end = (0, 0);
+	let mut map_neighbors = HashMap::new();
 
+	parse_map(input, &mut start, &mut end, &mut map, &mut map_neighbors);
+
+	search(map_neighbors, start, end)
+}
+
+fn search(
+	map_neighbors: HashMap<(usize, usize), Vec<(usize, usize)>>,
+	start: (usize, usize),
+	end: (usize, usize),
+) -> usize {
+	let mut found = None;
+	let mut paths = VecDeque::from([start]);
+	let mut visited = HashMap::new();
+	visited.insert(start, 0_usize);
+
+	while let Some(p) = paths.pop_front() {
+		if p == end {
+			found = Some(visited.get(&p).unwrap());
+			break;
+		}
+
+		let all_possible = &map_neighbors.get(&p).unwrap();
+
+		let unvisited = all_possible
+			.iter()
+			.filter(|&p| !visited.contains_key(p))
+			.collect::<Vec<_>>();
+
+		for new in unvisited {
+			paths.push_back(*new);
+			visited.insert(*new, *visited.get(&p).unwrap() + 1);
+		}
+	}
+
+	*found.unwrap()
+}
+
+fn parse_map(
+	input: &str,
+	start: &mut (usize, usize),
+	end: &mut (usize, usize),
+	map: &mut HashMap<(usize, usize), char>,
+	map_neighbors: &mut HashMap<(usize, usize), Vec<(usize, usize)>>,
+) {
 	input.lines().enumerate().for_each(|(y, l)| {
 		l.chars().enumerate().for_each(|(x, c)| match c {
 			'S' => {
-				start = (x, y);
+				*start = (x, y);
 				map.insert((x, y), 'a');
 			}
 			'E' => {
-				end = (x, y);
+				*end = (x, y);
 				map.insert((x, y), 'z');
 			}
 			_ => {
@@ -36,10 +81,10 @@ fn part01(input: &str) -> usize {
 		});
 	});
 
-	pretty_print_map(&map);
+	// pretty_print_map(&map);
 
 	let (map_max_x, map_max_y) = map.iter().max().unwrap().0;
-	let mut map_neighbors = HashMap::new();
+
 	map.iter().for_each(|(curr, height)| {
 		let neighbors = [
 			(Some(curr.0), curr.1.checked_sub(1)),
@@ -65,33 +110,6 @@ fn part01(input: &str) -> usize {
 
 		map_neighbors.insert(*curr, neighbors);
 	});
-
-	let mut paths = VecDeque::from([&start]);
-	let mut visited = HashMap::new();
-	visited.insert(&start, 0_usize);
-
-	let mut found = None;
-
-	while let Some(p) = paths.pop_front() {
-		if p == &end {
-			found = Some(visited.get(p).unwrap());
-			break;
-		}
-
-		let all_possible = &map_neighbors.get(p).unwrap();
-
-		let unvisited = all_possible
-			.iter()
-			.filter(|&p| !visited.contains_key(p))
-			.collect::<Vec<_>>();
-
-		for new in unvisited {
-			paths.push_back(new);
-			visited.insert(new, *visited.get(p).unwrap() + 1);
-		}
-	}
-
-	*found.unwrap()
 }
 
 fn pretty_print_map(map: &HashMap<(usize, usize), char>) {
