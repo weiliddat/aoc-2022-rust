@@ -1,0 +1,7 @@
+int = { ASCII_DIGIT+ }
+list = { "[" ~ list_items* ~  "]" }
+list_items = { (int|list) ~ ("," ~ (int|list))* }
+left = { list }
+right = { list }
+pair = { left ~ NEWLINE ~ right ~ NEWLINE+ }
+file = { SOI ~ pair+ ~ EOI }

@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, VecDeque};
 use std::fs;
 use std::path::Path;
 
@@ -98,7 +98,7 @@ fn parse_map(
 		});
 	});
 
-	// pretty_print_map(&map);
+	pretty_print_map(&map);
 
 	let (map_max_x, map_max_y) = map.iter().max().unwrap().0;
 
