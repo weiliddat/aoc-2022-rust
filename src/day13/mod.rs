@@ -1,3 +1,4 @@
+use pest::iterators::Pair;
 use pest::Parser;
 use std::fs;
 use std::path::Path;
@@ -15,32 +16,68 @@ pub fn run() {
 	println!("part02 {:?}", part02_result);
 }
 
-enum Packet {
-	Integer(usize),
-	List(Vec<usize>),
-}
-
 #[derive(Parser)]
 #[grammar = "day13/packet.pest"]
 pub struct PacketParser;
 
+#[derive(Debug)]
+enum PacketData {
+	Int(usize),
+	List(Vec<PacketData>),
+}
+
 fn part01(input: &str) -> usize {
-	let result = PacketParser::parse(Rule::file, input)
+	let file = PacketParser::parse(Rule::file, input)
 		.expect("could not parse file")
 		.next()
 		.unwrap();
 
-	result.into_inner().for_each(|p| {
-		p.into_inner().for_each(|l_r| {
-			match l_r.as_rule() {
-				Rule::left => println!("left {}", l_r.as_str()),
-				Rule::right => println!("right {}", l_r.as_str()),
-				_ => unreachable!()
-			}
-		});
-	});
+	file.into_inner()
+		.enumerate()
+		.filter_map(|(i, p)| {
+			let parsed_lr = match p.as_rule() {
+				Rule::pair => {
+					let mut l_r = p.into_inner();
 
-	0
+					// left and right are always present
+					let left = l_r.next().unwrap();
+					let right = l_r.next().unwrap();
+
+					// first list is always present and always the only item
+					let lpd = parse_item(left.into_inner().next().unwrap());
+					let rpd = parse_item(right.into_inner().next().unwrap());
+
+					Some((lpd, rpd))
+				}
+				Rule::EOI => None,
+				_ => unreachable!(),
+			};
+
+			if let Some((lpd, rpd)) = parsed_lr {
+			}
+
+			Some(i)
+		})
+		.sum()
+}
+
+fn parse_item(item: Pair<Rule>) -> PacketData {
+	match item.as_rule() {
+		Rule::int => {
+			let int = item.as_str().parse::<usize>().unwrap();
+			PacketData::Int(int)
+		}
+		Rule::list => {
+			let list = item;
+			let pdl = list
+				.into_inner()
+				.flat_map(|items| items.into_inner().map(|item| parse_item(item)))
+				.collect::<Vec<_>>();
+
+			PacketData::List(pdl)
+		}
+		_ => unreachable!(),
+	}
 }
 
 fn part02(input: &str) -> usize {
@@ -78,8 +115,16 @@ mod tests {
 
 	#[test]
 	fn test_part01() {
+		let left = PacketData::List(vec![
+			PacketData::List(vec![PacketData::Int(1)]),
+			PacketData::List(vec![
+				PacketData::Int(2),
+				PacketData::Int(3),
+				PacketData::Int(4),
+			]),
+		]);
 		let result = part01(INPUT);
-		assert_eq!(result, 1);
+		assert_eq!(result, 13);
 	}
 
 	#[test]
