@@ -1,5 +1,6 @@
 use pest::iterators::Pair;
 use pest::Parser;
+use std::collections::VecDeque;
 use std::fs;
 use std::path::Path;
 
@@ -20,10 +21,39 @@ pub fn run() {
 #[grammar = "day13/packet.pest"]
 pub struct PacketParser;
 
-#[derive(Debug)]
-enum PacketData {
+#[derive(Debug, Clone)]
+enum Packet {
 	Int(usize),
-	List(Vec<PacketData>),
+	List(VecDeque<Packet>),
+}
+
+impl PartialEq for Packet {
+	fn eq(&self, other: &Self) -> bool {
+		match (self, other) {
+			(Packet::Int(s), Packet::Int(o)) => s.cmp(o).is_eq(),
+			(Packet::List(s), Packet::List(o)) => s.cmp(o).is_eq(),
+			(Packet::Int(s), Packet::List(o)) => VecDeque::from([Packet::Int(*s)]).cmp(o).is_eq(),
+			(Packet::List(s), Packet::Int(o)) => s.cmp(&VecDeque::from([Packet::Int(*o)])).is_eq(),
+		}
+	}
+}
+impl Eq for Packet {}
+
+impl PartialOrd for Packet {
+	fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+		Some(self.cmp(other))
+	}
+}
+
+impl Ord for Packet {
+	fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+		match (self, other) {
+			(Packet::Int(s), Packet::Int(o)) => s.cmp(o),
+			(Packet::List(s), Packet::List(o)) => s.cmp(o),
+			(Packet::Int(s), Packet::List(o)) => VecDeque::from([Packet::Int(*s)]).cmp(o),
+			(Packet::List(s), Packet::Int(o)) => s.cmp(&VecDeque::from([Packet::Int(*o)])),
+		}
+	}
 }
 
 fn part01(input: &str) -> usize {
@@ -35,17 +65,18 @@ fn part01(input: &str) -> usize {
 	file.into_inner()
 		.enumerate()
 		.filter_map(|(i, p)| {
+			let pair_index = i + 1;
 			let parsed_lr = match p.as_rule() {
 				Rule::pair => {
 					let mut l_r = p.into_inner();
 
 					// left and right are always present
-					let left = l_r.next().unwrap();
-					let right = l_r.next().unwrap();
+					let left = l_r.next().expect("Missing left");
+					let right = l_r.next().expect("Missing right");
 
 					// first list is always present and always the only item
-					let lpd = parse_item(left.into_inner().next().unwrap());
-					let rpd = parse_item(right.into_inner().next().unwrap());
+					let lpd = parse_item(left.into_inner().next().expect("Missing left items"));
+					let rpd = parse_item(right.into_inner().next().expect("Missing right items"));
 
 					Some((lpd, rpd))
 				}
@@ -53,40 +84,47 @@ fn part01(input: &str) -> usize {
 				_ => unreachable!(),
 			};
 
+			let mut in_right_order: Option<usize> = None;
+
 			if let Some((lpd, rpd)) = parsed_lr {
+				let result = lpd.cmp(&rpd);
+				if result.is_lt() {
+					in_right_order = Some(pair_index);
+				}
 			}
 
-			Some(i)
+			in_right_order
 		})
 		.sum()
 }
 
-fn parse_item(item: Pair<Rule>) -> PacketData {
+fn parse_item(item: Pair<Rule>) -> Packet {
 	match item.as_rule() {
 		Rule::int => {
 			let int = item.as_str().parse::<usize>().unwrap();
-			PacketData::Int(int)
+			Packet::Int(int)
 		}
 		Rule::list => {
 			let list = item;
 			let pdl = list
 				.into_inner()
 				.flat_map(|items| items.into_inner().map(|item| parse_item(item)))
-				.collect::<Vec<_>>();
+				.collect::<VecDeque<_>>();
 
-			PacketData::List(pdl)
+			Packet::List(pdl)
 		}
 		_ => unreachable!(),
 	}
 }
 
-fn part02(input: &str) -> usize {
+fn part02(_input: &str) -> usize {
 	0
 }
 
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use std::cmp::Ordering;
 
 	const INPUT: &str = "[1,1,3,1,1]
 [1,1,5,1,1]
@@ -113,16 +151,72 @@ mod tests {
 [1,[2,[3,[4,[5,6,0]]]],8,9]
 ";
 
+	fn parse_list(input: &str) -> Packet {
+		let list = PacketParser::parse(Rule::list, input)
+			.expect("could not parse list")
+			.next()
+			.unwrap();
+
+		parse_item(list)
+	}
+
+	#[test]
+	fn test_parse() {
+		let input = parse_list("[1,2,3,[4]]");
+		let expected = Packet::List(VecDeque::from([
+			Packet::Int(1),
+			Packet::Int(2),
+			Packet::Int(3),
+			Packet::List(VecDeque::from([Packet::Int(4)])),
+		]));
+		assert_eq!(input, expected);
+	}
+
+	#[test]
+	fn test_packet_data_comparisons() {
+		let left = parse_list("[1,2,1]");
+		let right = parse_list("[1,2,1]");
+		let result = left.cmp(&right);
+		assert_eq!(result, Ordering::Equal);
+
+		let left = parse_list("[1,2,2]");
+		let right = parse_list("[1,2,1]");
+		let result = left.cmp(&right);
+		assert_eq!(result, Ordering::Greater);
+
+		let left = parse_list("[1,2]");
+		let right = parse_list("[1,2,1]");
+		let result = left.cmp(&right);
+		assert_eq!(result, Ordering::Less);
+
+		let left = parse_list("[1,2]");
+		let right = parse_list("[1]");
+		let result = left.cmp(&right);
+		assert_eq!(result, Ordering::Greater);
+
+		let left = parse_list("[2,1]");
+		let right = parse_list("[1,2,2]");
+		let result = left.cmp(&right);
+		assert_eq!(result, Ordering::Greater);
+
+		let left = parse_list("[[1]]");
+		let right = parse_list("[1]");
+		let result = left.cmp(&right);
+		assert_eq!(result, Ordering::Equal);
+
+		let left = parse_list("[[2]]");
+		let right = parse_list("[1]");
+		let result = left.cmp(&right);
+		assert_eq!(result, Ordering::Greater);
+
+		let left = parse_list("[[2]]");
+		let right = parse_list("[[3]]");
+		let result = left.cmp(&right);
+		assert_eq!(result, Ordering::Less);
+	}
+
 	#[test]
 	fn test_part01() {
-		let left = PacketData::List(vec![
-			PacketData::List(vec![PacketData::Int(1)]),
-			PacketData::List(vec![
-				PacketData::Int(2),
-				PacketData::Int(3),
-				PacketData::Int(4),
-			]),
-		]);
 		let result = part01(INPUT);
 		assert_eq!(result, 13);
 	}
