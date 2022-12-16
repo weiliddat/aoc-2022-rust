@@ -117,8 +117,64 @@ fn parse_item(item: Pair<Rule>) -> Packet {
 	}
 }
 
-fn part02(_input: &str) -> usize {
-	0
+fn parse_list(input: &str) -> Packet {
+	let list = PacketParser::parse(Rule::list, input)
+		.expect("could not parse list")
+		.next()
+		.unwrap();
+
+	parse_item(list)
+}
+
+fn part02(input: &str) -> usize {
+	let file = PacketParser::parse(Rule::file, input)
+		.expect("could not parse file")
+		.next()
+		.unwrap();
+
+	let mut list = file
+		.into_inner()
+		.enumerate()
+		.filter_map(|(_i, p)| match p.as_rule() {
+			Rule::pair => {
+				let mut l_r = p.into_inner();
+
+				// left and right are always present
+				let left = l_r.next().expect("Missing left");
+				let right = l_r.next().expect("Missing right");
+
+				// first list is always present and always the only item
+				let lpd = parse_item(left.into_inner().next().expect("Missing left items"));
+				let rpd = parse_item(right.into_inner().next().expect("Missing right items"));
+
+				Some([lpd, rpd])
+			}
+			Rule::EOI => None,
+			_ => unreachable!(),
+		})
+		.flatten()
+		.collect::<Vec<_>>();
+
+	let divider_2 = parse_list("[[2]]");
+	let divider_6 = parse_list("[[6]]");
+	list.push(divider_2.clone());
+	list.push(divider_6.clone());
+
+	list.sort();
+
+	let decoder_key: usize = list
+		.iter()
+		.enumerate()
+		.filter_map(|(i, p)| {
+			if p == &divider_2 || p == &divider_6 {
+				Some(i + 1)
+			} else {
+				None
+			}
+		})
+		.product();
+
+	decoder_key
 }
 
 #[cfg(test)]
@@ -150,15 +206,6 @@ mod tests {
 [1,[2,[3,[4,[5,6,7]]]],8,9]
 [1,[2,[3,[4,[5,6,0]]]],8,9]
 ";
-
-	fn parse_list(input: &str) -> Packet {
-		let list = PacketParser::parse(Rule::list, input)
-			.expect("could not parse list")
-			.next()
-			.unwrap();
-
-		parse_item(list)
-	}
 
 	#[test]
 	fn test_parse() {
@@ -224,6 +271,6 @@ mod tests {
 	#[test]
 	fn test_part02() {
 		let result = part02(INPUT);
-		assert_eq!(result, 1);
+		assert_eq!(result, 140);
 	}
 }
