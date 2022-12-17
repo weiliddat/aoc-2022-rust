@@ -1,6 +1,7 @@
 #![feature(iter_array_chunks)]
 #![feature(map_many_mut)]
 #![feature(get_many_mut)]
+#![feature(test)]
 
 extern crate pest;
 #[macro_use]

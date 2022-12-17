@@ -4,6 +4,8 @@ use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::Path;
 
+extern crate test;
+
 pub fn run() {
 	let module_name = module_path!().split("::").last().unwrap();
 	let input_path = format!("src/{module_name}/input.txt");
@@ -13,7 +15,7 @@ pub fn run() {
 	let part01_result = part01(&input, 2000000);
 	println!("part01 {:?}", part01_result);
 
-	let part02_result = part02(&input);
+	let part02_result = part02(&input, 4000000);
 	println!("part02 {:?}", part02_result);
 }
 
@@ -48,20 +50,48 @@ fn part01(input: &str, row: isize) -> usize {
 	let mut covered = HashSet::new();
 
 	while i <= *max_x {
-		i += 1;
 		let c = (i, row);
 
 		for (s, d) in sensor_ranges.iter() {
 			if taxi_dist(&c, s) <= *d && !beacons.contains(&c) {
 				covered.insert(c);
+				break;
 			}
 		}
+
+		i += 1;
 	}
 
 	covered.len()
 }
 
-fn part02(input: &str) -> usize {
+fn part02(input: &str, max_xy: isize) -> usize {
+	let sensor_ranges = input
+		.lines()
+		.map(parse_line)
+		.map(|o| o.unwrap())
+		.map(|(s, b)| (s, taxi_dist(&s, &b)))
+		.collect::<HashMap<_, _>>();
+
+	let mut x = 0;
+	let mut y = 0;
+
+	'y: while y < max_xy {
+		while x < max_xy {
+			let c = (x, y);
+
+			let uncovered = sensor_ranges.iter().all(|(s, d)| taxi_dist(&c, s) > *d);
+
+			if uncovered {
+				break 'y;
+			}
+
+			x += 1;
+		}
+		y += 1;
+		x = 0;
+	}
+
 	0
 }
 
@@ -96,6 +126,7 @@ fn taxi_dist(a: &(isize, isize), b: &(isize, isize)) -> isize {
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use test::Bencher;
 
 	const INPUT: &str = "Sensor at x=2, y=18: closest beacon is at x=-2, y=15
 Sensor at x=9, y=16: closest beacon is at x=10, y=16
@@ -118,9 +149,19 @@ Sensor at x=20, y=1: closest beacon is at x=15, y=3";
 		assert_eq!(result, 26);
 	}
 
+	#[bench]
+	fn bench_part01(b: &mut Bencher) {
+		b.iter(|| part01(INPUT, 10));
+	}
+
 	#[test]
 	fn test_part02() {
-		let result = part02(INPUT);
-		assert_eq!(result, 1);
+		let result = part02(INPUT, 20);
+		assert_eq!(result, 56000011);
+	}
+
+	#[bench]
+	fn bench_part02(b: &mut Bencher) {
+		b.iter(|| part02(INPUT, 20));
 	}
 }
