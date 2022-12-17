@@ -65,7 +65,7 @@ fn part01(input: &str, row: isize) -> usize {
 	covered.len()
 }
 
-fn part02(input: &str, max_xy: isize) -> usize {
+fn part02(input: &str, max_xy: isize) -> isize {
 	let sensor_ranges = input
 		.lines()
 		.map(parse_line)
@@ -92,7 +92,7 @@ fn part02(input: &str, max_xy: isize) -> usize {
 		x = 0;
 	}
 
-	0
+	x * 4000000 + y
 }
 
 fn parse_line(line: &str) -> Option<((isize, isize), (isize, isize))> {
