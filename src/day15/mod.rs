@@ -62,18 +62,18 @@ fn part01(input: &str, row: isize) -> usize {
 		i += 1;
 	}
 
-	println!("row {}", row);
-	let mut sorted = covered.iter().collect::<Vec<_>>();
-	sorted.sort();
-	sorted.iter().for_each(|c| {
-		println!("{:?}", c);
-	});
+	// println!("row {}", row);
+	// let mut sorted = covered.iter().collect::<Vec<_>>();
+	// sorted.sort();
+	// sorted.iter().for_each(|c| {
+	// 	println!("{:?}", c);
+	// });
 
 	covered.len()
 }
 
 fn part02(input: &str, max_xy: isize) -> isize {
-	let mut sensor_coverage = input
+	let sensor_coverage: HashMap<isize, Vec<(isize, isize)>> = input
 		.lines()
 		.map(parse_line)
 		.map(|o| o.unwrap())
@@ -92,89 +92,70 @@ fn part02(input: &str, max_xy: isize) -> isize {
 				})
 				.collect::<Vec<_>>()
 		})
-		.collect::<Vec<_>>();
+		.fold(HashMap::new(), |mut acc, (y, min, max)| {
+			let min = min.clamp(0, max_xy);
+			let max = max.clamp(0, max_xy);
 
-	sensor_coverage.sort();
+			acc.entry(y)
+				.and_modify(|ranges| {
+					let mut n = (min, max);
+					let mut new_ranges = vec![];
 
-	let sensor_coverage: HashMap<&isize, Vec<(&isize, &isize)>> =
-		sensor_coverage
-			.iter()
-			.fold(HashMap::new(), |mut acc, (y, min, max)| {
-				println!("y {}", y);
-				let min = min.clamp(&0, &max_xy);
-				let max = max.clamp(&0, &max_xy);
-
-				acc.entry(y)
-					.and_modify(|ranges| {
-						println!("ranges {:?}", ranges.clone());
-
-						let mut n = (min, max);
-						let mut new_ranges = vec![];
-						println!("new {:?}", n);
-
-						while let Some(e) = ranges.pop() {
-							println!("existing {:?}", e);
-							// n |----|
-							// e |---------|
-							// if new is within existing range
-							// update new range to existing range
-							// remove existing range
-							if n.0 >= e.0 && n.1 <= e.1 {
-								println!("n within e");
-								n = e;
-							} else
-							// n |---------|
-							// e   |----|
-							// if existing range is within new range
-							// do nothing
-							// remove existing range
-							if n.0 <= e.0 && n.1 >= e.1 {
-								println!("e within n");
-							} else
-							// n |---------|
-							// e        |----|
-							// n |---------|
-							// e            |----|
-							// if new range max is gte/adjacent existing range min
-							// update new range max to existing range max
-							if n.0 <= e.0 && &(n.1 + 1) >= e.0 {
-								println!("n extend e min");
-								n.1 = e.1;
-							} else
-							// n       |---------|
-							// e   |----|
-							// n         |---------|
-							// e   |----|
-							// if new range min is lte/adjacent existing range max
-							// update new range min to existing range min
-							if n.1 >= e.1 && n.0 <= &(e.1 + 1) {
-								println!("n extend e max");
-								n.0 = e.0;
-							} else {
-								// e |----|
-								// e                    |----|
-								// n        |---------|
-								// add existing range
-								println!("outside");
-								new_ranges.push(e);
-							}
+					while let Some(e) = ranges.pop() {
+						// n |----|
+						// e |---------|
+						// if new is within existing range
+						// update new range to existing range
+						if n.0 >= e.0 && n.1 <= e.1 {
+							n = e;
+						} else
+						// n |---------|
+						// e   |----|
+						// if existing range is within new range
+						// do nothing
+						if n.0 <= e.0 && n.1 >= e.1 {
+						} else
+						// n |---------|
+						// e        |----|
+						// n |---------|
+						// e            |----|
+						// if new range max is gte/adjacent existing range min
+						// update new range max to existing range max
+						if n.0 <= e.0 && n.1 + 1 >= e.0 {
+							n.1 = e.1;
+						} else
+						// n       |---------|
+						// e   |----|
+						// n         |---------|
+						// e   |----|
+						// if new range min is lte/adjacent existing range max
+						// update new range min to existing range min
+						if n.1 >= e.1 && n.0 <= e.1 + 1 {
+							n.0 = e.0;
+						} else {
+							// e |----|
+							// e                    |----|
+							// n        |---------|
+							// add existing range
+							new_ranges.push(e);
 						}
+					}
 
-						new_ranges.push(n);
+					new_ranges.push(n);
 
-						*ranges = new_ranges;
-					})
-					.or_insert(vec![(min, max)]);
-				acc
-			});
+					*ranges = new_ranges;
+				})
+				.or_insert(vec![(min, max)]);
+			acc
+		});
 
-	{
-		let mut a = sensor_coverage.iter().collect::<Vec<_>>();
-		a.sort();
-		a.iter().for_each(|a| println!("{:?}", a));
-	}
+	let beacon = sensor_coverage
+		.iter()
+		.find(|(_y, r)| **r != vec![(0, max_xy)])
+		.and_then(|(y, r)| Some((r.first()?.1 + 1, *y)))
+		.expect("Could not find beacon!");
 
-	0
+	beacon.0 * 4000000 + beacon.1
 }
 
 fn parse_line(line: &str) -> Option<((isize, isize), (isize, isize))> {
