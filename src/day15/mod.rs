@@ -62,37 +62,119 @@ fn part01(input: &str, row: isize) -> usize {
 		i += 1;
 	}
 
+	println!("row {}", row);
+	let mut sorted = covered.iter().collect::<Vec<_>>();
+	sorted.sort();
+	sorted.iter().for_each(|c| {
+		println!("{:?}", c);
+	});
+
 	covered.len()
 }
 
 fn part02(input: &str, max_xy: isize) -> isize {
-	let sensor_ranges = input
+	let mut sensor_coverage = input
 		.lines()
 		.map(parse_line)
 		.map(|o| o.unwrap())
 		.map(|(s, b)| (s, taxi_dist(&s, &b)))
-		.collect::<HashMap<_, _>>();
+		.flat_map(|(s, d)| {
+			(0..max_xy)
+				.filter_map(move |y| {
+					let x_diff = d - (s.1 - y).abs();
+					if x_diff > 0 {
+						Some((y, s.0 - x_diff, s.0 + x_diff))
+					} else if x_diff == 0 {
+						Some((y, s.0, s.0))
+					} else {
+						None
+					}
+				})
+				.collect::<Vec<_>>()
+		})
+		.collect::<Vec<_>>();
 
-	let mut x = 0;
-	let mut y = 0;
+	sensor_coverage.sort();
 
-	'y: while y < max_xy {
-		while x < max_xy {
-			let c = (x, y);
+	let sensor_coverage: HashMap<&isize, Vec<(&isize, &isize)>> =
+		sensor_coverage
+			.iter()
+			.fold(HashMap::new(), |mut acc, (y, min, max)| {
+				println!("y {}", y);
+				let min = min.clamp(&0, &max_xy);
+				let max = max.clamp(&0, &max_xy);
 
-			let uncovered = sensor_ranges.iter().all(|(s, d)| taxi_dist(&c, s) > *d);
+				acc.entry(y)
+					.and_modify(|ranges| {
+						println!("ranges {:?}", ranges.clone());
 
-			if uncovered {
-				break 'y;
-			}
+						let mut n = (min, max);
+						let mut new_ranges = vec![];
+						println!("new {:?}", n);
 
-			x += 1;
-		}
-		y += 1;
-		x = 0;
+						while let Some(e) = ranges.pop() {
+							println!("existing {:?}", e);
+							// n |----|
+							// e |---------|
+							// if new is within existing range
+							// update new range to existing range
+							// remove existing range
+							if n.0 >= e.0 && n.1 <= e.1 {
+								println!("n within e");
+								n = e;
+							} else
+							// n |---------|
+							// e   |----|
+							// if existing range is within new range
+							// do nothing
+							// remove existing range
+							if n.0 <= e.0 && n.1 >= e.1 {
+								println!("e within n");
+							} else
+							// n |---------|
+							// e        |----|
+							// n |---------|
+							// e            |----|
+							// if new range max is gte/adjacent existing range min
+							// update new range max to existing range max
+							if n.0 <= e.0 && &(n.1 + 1) >= e.0 {
+								println!("n extend e min");
+								n.1 = e.1;
+							} else
+							// n       |---------|
+							// e   |----|
+							// n         |---------|
+							// e   |----|
+							// if new range min is lte/adjacent existing range max
+							// update new range min to existing range min
+							if n.1 >= e.1 && n.0 <= &(e.1 + 1) {
+								println!("n extend e max");
+								n.0 = e.0;
+							} else {
+								// e |----|
+								// e                    |----|
+								// n        |---------|
+								// add existing range
+								println!("outside");
+								new_ranges.push(e);
+							}
+						}
+
+						new_ranges.push(n);
+
+						*ranges = new_ranges;
+					})
+					.or_insert(vec![(min, max)]);
+				acc
+			});
+
+	{
+		let mut a = sensor_coverage.iter().collect::<Vec<_>>();
+		a.sort();
+		a.iter().for_each(|a| println!("{:?}", a));
 	}
 
-	x * 4000000 + y
+	0
 }
 
 fn parse_line(line: &str) -> Option<((isize, isize), (isize, isize))> {
@@ -141,7 +223,8 @@ Sensor at x=20, y=14: closest beacon is at x=25, y=17
 Sensor at x=17, y=20: closest beacon is at x=21, y=22
 Sensor at x=16, y=7: closest beacon is at x=15, y=3
 Sensor at x=14, y=3: closest beacon is at x=15, y=3
-Sensor at x=20, y=1: closest beacon is at x=15, y=3";
+Sensor at x=20, y=1: closest beacon is at x=15, y=3
+";
 
 	#[test]
 	fn test_part01() {
@@ -149,15 +232,15 @@ Sensor at x=20, y=1: closest beacon is at x=15, y=3";
 		assert_eq!(result, 26);
 	}
 
-	#[bench]
-	fn bench_part01(b: &mut Bencher) {
-		b.iter(|| part01(INPUT, 10));
-	}
-
 	#[test]
 	fn test_part02() {
 		let result = part02(INPUT, 20);
 		assert_eq!(result, 56000011);
+	}
+
+	#[bench]
+	fn bench_part01(b: &mut Bencher) {
+		b.iter(|| part01(INPUT, 10));
 	}
 
 	#[bench]
