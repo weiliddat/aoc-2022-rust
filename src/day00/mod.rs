@@ -26,19 +26,17 @@ fn part02(input: &str) -> usize {
 mod tests {
 	use super::*;
 
+	const INPUT:&str = "";
+
 	#[test]
 	fn test_part01() {
-		let input = concat!(
-		);
-		let result = part01(input);
+		let result = part01(INPUT);
 		assert_eq!(result, 1);
 	}
 
 	#[test]
 	fn test_part02() {
-		let input = concat!(
-		);
-		let result = part02(input);
+		let result = part02(INPUT);
 		assert_eq!(result, 1);
 	}
 }
