@@ -19,57 +19,81 @@ pub fn run() {
 	println!("part02 {:?}", part02_result);
 }
 
-fn part01(input: &str, row: isize) -> usize {
-	let sensor_beacons = input
+fn part01(input: &str, row: isize) -> isize {
+	let sensor_coverage: HashMap<isize, Vec<(isize, isize)>> = input
 		.lines()
 		.map(parse_line)
 		.map(|o| o.unwrap())
-		.collect::<Vec<_>>();
-
-	let beacons = sensor_beacons
-		.iter()
-		.map(|(_, b)| b)
-		.collect::<HashSet<_>>();
-
-	let sensor_ranges = sensor_beacons
-		.iter()
 		.map(|(s, b)| (s, taxi_dist(&s, &b)))
-		.collect::<HashMap<_, _>>();
-
-	let (xs, ys): (Vec<_>, Vec<_>) = sensor_ranges
-		.iter()
-		.flat_map(|(s, d)| [(s.0 + d, s.1 + d), (s.0 - d, s.1 - d)])
-		.unzip();
-
-	let min_x = xs.iter().min().expect("could not get min/max");
-	let max_x = xs.iter().max().expect("could not get min/max");
-	let _min_y = ys.iter().min().expect("could not get min/max");
-	let _max_y = ys.iter().max().expect("could not get min/max");
-
-	let mut i = *min_x;
-	let mut covered = HashSet::new();
-
-	while i <= *max_x {
-		let c = (i, row);
-
-		for (s, d) in sensor_ranges.iter() {
-			if taxi_dist(&c, s) <= *d && !beacons.contains(&c) {
-				covered.insert(c);
-				break;
+		.filter_map(|(s, d)| {
+			let x_diff = d - (s.1 - row).abs();
+			if x_diff > 0 {
+				Some((row, s.0 - x_diff, s.0 + x_diff))
+			} else if x_diff == 0 {
+				Some((row, s.0, s.0))
+			} else {
+				None
 			}
-		}
+		})
+		.fold(HashMap::new(), |mut acc, (y, min, max)| {
+			acc.entry(y)
+				.and_modify(|ranges| {
+					let mut n = (min, max);
+					let mut new_ranges = vec![];
 
-		i += 1;
-	}
+					while let Some(e) = ranges.pop() {
+						// n |----|
+						// e |---------|
+						// if new is within existing range
+						// update new range to existing range
+						if n.0 >= e.0 && n.1 <= e.1 {
+							n = e;
+						} else
+						// n |---------|
+						// e   |----|
+						// if existing range is within new range
+						// do nothing
+						if n.0 <= e.0 && n.1 >= e.1 {
+						} else
+						// n |---------|
+						// e        |----|
+						// n |---------|
+						// e            |----|
+						// if new range max is gte/adjacent existing range min
+						// update new range max to existing range max
+						if n.0 <= e.0 && n.1 + 1 >= e.0 {
+							n.1 = e.1;
+						} else
+						// n       |---------|
+						// e   |----|
+						// n         |---------|
+						// e   |----|
+						// if new range min is lte/adjacent existing range max
+						// update new range min to existing range min
+						if n.1 >= e.1 && n.0 <= e.1 + 1 {
+							n.0 = e.0;
+						} else {
+							// e |----|
+							// e                    |----|
+							// n        |---------|
+							// add existing range
+							new_ranges.push(e);
+						}
+					}
 
-	// println!("row {}", row);
-	// let mut sorted = covered.iter().collect::<Vec<_>>();
-	// sorted.sort();
-	// sorted.iter().for_each(|c| {
-	// 	println!("{:?}", c);
-	// });
+					new_ranges.push(n);
 
-	covered.len()
+					*ranges = new_ranges;
+				})
+				.or_insert(vec![(min, max)]);
+			acc
+		});
+
+	let coverage_at_row = sensor_coverage
+		.get(&row)
+		.expect("Could not get coverage at row!");
+
+	coverage_at_row.iter().map(|r| (r.0 - r.1).abs()).sum()
 }
 
 fn part02(input: &str, max_xy: isize) -> isize {
